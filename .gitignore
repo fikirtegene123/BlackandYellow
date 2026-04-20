@@ -1,0 +1,18 @@
+# ===== Ignore build/system folders =====
+Debug/
+RemoteSystemsTempFiles/
+targetConfigs/
+dvt/
+tm4c123gh6pm.cmd
+main.c
+tm4c123gh6pm_startup_ccs.c
+cyBot_Scan.h
+cyBot_uart.h
+open_interface.c
+open_interface.h
+# ===== Ignore libraries =====
+*.lib
+#Ignore some header files
+lcd.c
+lcd.h
+REF_tm4c123gh6pm.h
