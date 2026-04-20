@@ -16,3 +16,24 @@ open_interface.h
 lcd.c
 lcd.h
 REF_tm4c123gh6pm.h
+# IDE / system files
+.metadata/
+.settings/
+.project
+.cproject
+.ccsproject
+
+# VSCode
+.vscode/
+
+# Browser / cache junk
+.jxbrowser.userdata/
+
+# Logs & temp
+*.log
+*.lock
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
