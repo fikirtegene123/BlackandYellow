@@ -3,6 +3,7 @@ Debug/
 RemoteSystemsTempFiles/
 targetConfigs/
 dvt/
+.launches/
 tm4c123gh6pm.cmd
 main.c
 tm4c123gh6pm_startup_ccs.c
