@@ -30,9 +30,11 @@
 //extern volatile char receive_buffer[]; // buffer for characters received from PuTTY
 //extern volatile int receive_index; // index to keep track of characters in buffer
 extern volatile int command_flag; // flag to tell the main program a special command was received
-extern volatile char start_byte; // byte value for special character used as a command
-extern volatile char stop_byte ;
-
+volatile char foward_byte ;
+volatile char back_byte ;
+volatile char left_byte ;
+volatile char right_byte ;
+volatile char stop_byte ;
 extern volatile char prev_char ;
 // UART1 device initialization for CyBot to PuTTY
 void uart_interrupt_init(void);

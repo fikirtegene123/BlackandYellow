@@ -16,11 +16,15 @@
 #include "uart-interrupt.h"
 #include <string.h>
 // These variables are declared as examples for your use in the interrupt handler.
-volatile char start_byte = 'n'; // byte value for special character used as a command
-volatile char stop_byte = 's';
+volatile char foward_byte = 'w';
+volatile char back_byte = 's';
+volatile char left_byte = 'a';
+volatile char right_byte = 'd';
+volatile char stop_byte = 'm';
 volatile int command_flag = 0; // flag to tell the main program a special command was received
 volatile char prev_char = 'k';
 void uart_interrupt_init(void);
+void uart_sendChar(char data);
 void uart_interrupt_init(void){
 	//TODO
   //enable clock to GPIO port B
@@ -114,7 +118,11 @@ char uart_receive(void){
 }
 
 void uart_sendStr(const char *data){
-	//TODO for reference see lcd_puts from lcd.c file
+    // Loop until null terminator is reached
+    while (*data != '\0'){
+        uart_sendChar(*data);  // send current character
+        data++;                // move to next character
+    }
 }
 
 // Interrupt handler for receive interrupts
@@ -142,14 +150,27 @@ void UART1_Handler(void)
         }
         else
         {
+            uart_sendChar(byte_received);
             //AS NEEDED
             //code to handle any other special characters
             //code to update global shared variables
             //DO NOT PUT TIME-CONSUMING CODE IN AN ISR
-            if (byte_received == start_byte)
+            if (byte_received == foward_byte)
             {
               command_flag = 1;
-              prev_char = byte_received;
+            }
+            else if (byte_received == back_byte){
+                command_flag = 2;
+            }
+            else if (byte_received == left_byte){
+                command_flag = 3;
+            }else if (byte_received == right_byte) {
+                command_flag = 4;
+            }else if (byte_received == stop_byte){
+                command_flag = 5;
+            }
+            if (byte_received){
+                prev_char = byte_received;
             }
         }
     }
