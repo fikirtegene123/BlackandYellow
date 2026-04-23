@@ -17,6 +17,10 @@
 #define MAX_OBJECTS 10
 #define DELAY 100
 #define Buffer_Lenght 50
+#define FRONT_RIGHT 2400
+#define FRONT_LEFT 2450
+#define RIGHT_VERGE 2400
+#define LEFT_VERGE 2400
 void turn_and_move(oi_t *sensor_data,double angle , double distance);
 void final_move(oi_t *sensor_data);
 /**
@@ -261,6 +265,18 @@ int scanObjects_upgrade(Object objects[], Object *min_Obj){
 /**
  *
  */
+int verge_detect(oi_t *d){
+    if (d->cliffFrontLeftSignal >= FRONT_LEFT){
+        return 1;
+    }else if (d->cliffLeftSignal >= LEFT_VERGE){
+        return 2;
+    }else if (d->cliffFrontRightSignal >= FRONT_RIGHT){
+        return 3;
+    }else if (d->cliffRightSignal >= RIGHT_VERGE){
+        return 4;
+    }
+    return 0;
+}
 void final_move(oi_t *sensor_data){
     int stop_move = 0;
     while(!stop_move){
@@ -295,8 +311,24 @@ double move_foward (oi_t *sensor_data,double distance_mm){
     double sum = 0;
     int bump_thing = 0 ;
     char warning[Buffer_Lenght];
-    strcat(warning,"\n\rObject detects on the ");
+    sprintf(warning,"\n\rObject detects on the ");
     while (sum <= distance_mm && !bump_thing){
+        oi_update(sensor_data);
+        int verge = verge_detect(sensor_data);
+        timer_waitMillis(1);
+        if (verge){
+            sprintf(warning,"Has get to the border, detects on ");
+            if (verge == 1){
+               strcat(warning,"Cliff Front Left\n\r");
+            }else if (verge == 2){oi_update(sensor_data);
+                strcat(warning,"Cliff Left\n\r");
+            }else if (verge == 3){
+                strcat(warning,"Cliff Front Right\n\r");
+            }else{
+                strcat(warning,"Cliff Right\n\r");
+            }
+            bump_thing = 1 ;
+        }
         if (sensor_data->bumpLeft && sensor_data->bumpRight){
             strcat(warning,"middle");
             bump_thing = 1;
