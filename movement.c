@@ -266,9 +266,14 @@ int scanObjects_upgrade(Object objects[], Object *min_Obj){
  *
  */
 int verge_detect(oi_t *d){
+    char value[50];
     if (d->cliffFrontLeftSignal >= FRONT_LEFT){
+        sprintf(value,"data cliff front left is %d\n\r", d->cliffFrontLeftSignal);
+        uart_sendStr(value);
         return 1;
     }else if (d->cliffLeftSignal >= LEFT_VERGE){
+        sprintf(value,"data is %d\n\r", d->cliffLeftSignal);
+        uart_sendStr(value);
         return 2;
     }else if (d->cliffFrontRightSignal >= FRONT_RIGHT){
         return 3;
@@ -279,13 +284,26 @@ int verge_detect(oi_t *d){
 }
 void final_move(oi_t *sensor_data){
     int stop_move = 0;
+    char value[50];
+    char not_press[50];
+
     while(!stop_move){
+        oi_update(sensor_data);
+        if (command_flag == 16){
+            sprintf(not_press,"\n\rdata is not pressed\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
+            uart_sendStr(not_press);
+        }
         if(command_flag){
+
            if(command_flag == 1){
                move_foward(sensor_data,(double) DISTANCE_MOVE);
+               sprintf(value,"\n\rwhen the button is pressed:\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
+               uart_sendStr(value);
            }
            else if (command_flag == 2){
                back_up(sensor_data,(double) DISTANCE_MOVE);
+               sprintf(value,"\n\rwhen the button is pressed:\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
+               uart_sendStr(value);
            }
            else if (command_flag == 3){
                turn_left(sensor_data, (double) (DEGREE_TURN_VERTICAL));
@@ -396,4 +414,21 @@ double turn_left(oi_t *sensor,double degrees){
     }
     oi_setWheels(0,0);
     return turn_already;
+}
+void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char *duration)
+{
+    int i;
+    uart_sendChar(141);
+    uart_sendChar(song_index);
+    uart_sendChar(num_notes);
+    for (i = 0; i < num_notes; i++) {
+        uart_sendChar(notes[i]);
+        uart_sendChar(duration[i]);
+    }
+}
+
+/// Plays a given song; use oi_load_song(...) first
+void playsong(int index) {
+    uart_sendChar(141);
+    uart_sendChar(index);
 }

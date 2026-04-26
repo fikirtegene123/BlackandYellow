@@ -26,5 +26,6 @@ void turn_and_move(oi_t *sensor_data,double angle , double distance);
 void scanRangeLab8();
 int read_avg_adc(int samples);
 void final_move(oi_t *sensor_data);
-
+void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char *duration);
+void playsong(int index);
 #endif /* MOVEMENT_H_ */

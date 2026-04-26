@@ -168,6 +168,8 @@ void UART1_Handler(void)
                 command_flag = 4;
             }else if (byte_received == stop_byte){
                 command_flag = 5;
+            }else if (byte_received == 't'){
+                command_flag = 16;
             }
             if (byte_received){
                 prev_char = byte_received;
