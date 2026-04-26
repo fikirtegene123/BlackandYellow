@@ -3,6 +3,8 @@
 #include<movement.h>
 //#include <uart-interrupt.h>
 #include <math.h>
+#include <ping_template.h>
+#include <servo.h>
 
 #define SPEED_RIGHT 200
 #define SPEED_LEFT 200
@@ -215,56 +217,7 @@ int scanObjects_upgrade(Object objects[], Object *min_Obj){
     return object_count;
 }
 
-//double move_foward (oi_t *sensor_data,double distance_mm){
-//    double sum = 0;
-//    int num_turn_left = 0;
-//    int num_turn_right = 0;
-//    while (sum<=distance_mm){
-//        if (sensor_data->bumpLeft || sensor_data->bumpRight){
-//            int check_turn = 0;
-//            int LEFT = sensor_data->bumpLeft;
-//            int RIGHT = sensor_data->bumpRight;
-//            back_up(sensor_data,BACK_UP_DISTANCE);
-//            sum = sum - BACK_UP_DISTANCE;
-//            if (RIGHT){
-//                check_turn = turn_left(sensor_data,90.0);
-//                check_turn = 0;
-//                num_turn_left++;
-//            }else if (LEFT){
-//                check_turn = turn_right(sensor_data,90.0);
-//                check_turn = 1;
-//                num_turn_right++;
-//            }
-//            double dummy = move_foward(sensor_data,250);
-//            if (check_turn){
-//                dummy = turn_left(sensor_data,90);
-//            }else{
-//                dummy = turn_right(sensor_data,90);
-//            }
-//            oi_update(sensor_data);
-//            continue;
-//        }
-//        oi_setWheels(SPEED_RIGHT,SPEED_LEFT);
-//        oi_update(sensor_data);
-//        double travel_distance = sensor_data->distance;
-//        sum = sum + travel_distance;
-//    }
-//    if (num_turn_left){
-//        turn_right(sensor_data,90.0);
-//        move_foward(sensor_data , 250.0*num_turn_left);
-//        num_turn_left= 0;
-//    }if (num_turn_right){
-//        turn_left(sensor_data,90.0);
-//        move_foward(sensor_data , 250.0*num_turn_right);
-//        num_turn_right= 0;
-//    }
-//    oi_setWheels(0,0);
-//
-//    return sum;
-//}
-/**
- *
- */
+
 int verge_detect(oi_t *d){
     char value[50];
     if (d->cliffFrontLeftSignal >= FRONT_LEFT){
@@ -318,6 +271,15 @@ void final_move(oi_t *sensor_data){
            else if (command_flag == 5){
                stop_move = 1;
            }
+           else if (command_flag == 6) {
+        scan180();
+
+      }
+           else if (command_flag == 7) {
+               turn_right(sensor_data, (double) (180));
+               scan180();
+               turn_right(sensor_data, (double) (180)); }
+
            command_flag = 0;
         }
     }
@@ -431,4 +393,25 @@ void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char
 void playsong(int index) {
     uart_sendChar(141);
     uart_sendChar(index);
+}
+void scan180(){
+    uart_sendStr("Angle(Degrees) \t CM :\r\n");
+
+
+               for (angle = 0; angle <= 180; angle += 2) {
+                   servo_move_new(angle);
+
+                   timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
+                   uint32_t pulse_width = ping_getPulseWidth();
+
+
+
+
+                  //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
+                   //  to generate putty file for graphical display
+                    sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
+                   uart_sendStr(irmessage);
+               }
+
+               uart_sendStr("END\n");
 }

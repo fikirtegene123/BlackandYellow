@@ -23,6 +23,8 @@ volatile char right_byte = 'd';
 volatile char stop_byte = 'm';
 volatile int command_flag = 0; // flag to tell the main program a special command was received
 volatile char prev_char = 'k';
+volatile char scan_byte = 'n';
+volatile char backscan_byte = 'b';
 void uart_interrupt_init(void);
 void uart_sendChar(char data);
 void uart_interrupt_init(void){
@@ -170,6 +172,12 @@ void UART1_Handler(void)
                 command_flag = 5;
             }else if (byte_received == 't'){
                 command_flag = 16;
+            }
+             else if (byte_received == scan_byte) {
+                command_flag = 6;
+            }
+            else if (byte_received == backscan_byte){
+                command_flag = 7;
             }
             if (byte_received){
                 prev_char = byte_received;
