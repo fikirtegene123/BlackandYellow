@@ -3,6 +3,8 @@
 #include<movement.h>
 //#include <uart-interrupt.h>
 #include <math.h>
+#include <ping_template.h>
+#include <servo.h>
 
 #define SPEED_RIGHT 200
 #define SPEED_LEFT 200
@@ -284,6 +286,15 @@ void final_move(oi_t *sensor_data){
            else if (command_flag == 5){
                stop_move = 1;
            }
+           else if (command_flag == 6) {
+        scan180();
+
+      }
+           else if (command_flag == 7) {
+               turn_right(sensor_data, (double) (180));
+               scan180();
+               turn_right(sensor_data, (double) (180)); }
+
            command_flag = 0;
         }
     }
@@ -364,4 +375,26 @@ double turn_left(oi_t *sensor,double degrees){
     }
     oi_setWheels(0,0);
     return turn_already;
+}
+
+void scan180(){
+    uart_sendStr("Angle(Degrees) \t CM :\r\n");
+
+
+               for (angle = 0; angle <= 180; angle += 2) {
+                   servo_move_new(angle);
+
+                   timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
+                   uint32_t pulse_width = ping_getPulseWidth();
+
+
+
+
+                  //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
+                   //  to generate putty file for graphical display
+                    sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
+                   uart_sendStr(irmessage);
+               }
+
+               uart_sendStr("END\n");
 }
