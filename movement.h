@@ -28,4 +28,7 @@ int read_avg_adc(int samples);
 void final_move(oi_t *sensor_data);
 void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char *duration);
 void playsong(int index);
+void scan180();
+void make_sound();
+void buzzer_sound();
 #endif /* MOVEMENT_H_ */

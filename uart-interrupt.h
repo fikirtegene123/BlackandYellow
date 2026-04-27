@@ -54,4 +54,6 @@ void uart_sendStr(const char *data);
 // Interrupt handler for receive interrupts
 void UART1_Handler(void);
 
+void sendchar_song(char data);
+
 #endif /* UART_H_ */

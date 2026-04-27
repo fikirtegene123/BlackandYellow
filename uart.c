@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include "uart.h"
 #include <cyBot_uart.h>
-#include <cyBot_Scan.h>
 void init_cybot_manual_uart();
 //void init_cybot_manual_uart(){
 //    cyBot_uart_init_clean();  // Clean UART1 initialization, before running your UART1 GPIO init code

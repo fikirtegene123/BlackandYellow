@@ -1,5 +1,4 @@
 #include <open_interface.h>
-#include <cyBot_Scan.h>
 #include<movement.h>
 //#include <uart-interrupt.h>
 #include <math.h>
@@ -30,83 +29,8 @@ void final_move(oi_t *sensor_data);
  */
 extern volatile int command_flag ;
 extern volatile char prev_char;
+void buzzer_sound();
 
-
-void scanRange(int start, int end){
-    cyBOT_Scan_t scan;
-    char Header[] = "Angle\tDistance\tRaw_IR\r\n";
-    int i;
-    for (i=0;i<strlen(Header);i++){
-        uart_sendChar(Header[i]);
-    }
-    char Buffer_info[40];
-    int current_angle;
-    for (current_angle = start; current_angle <= end; current_angle+=dif_deg){
-      cyBOT_Scan(current_angle, &scan);
-        snprintf(Buffer_info,sizeof(Buffer_info),"%-10d %-18.2f\t%d\r\n",current_angle,scan.sound_dist,scan.IR_raw_val);
-        for (i=0;i<strlen(Buffer_info);i++){
-            uart_sendChar(Buffer_info[i]);
-         }
-    }
-
-}
-void scanRangeLab8(){
-    char Header[] = "Distance\tRaw_IR\r\n";
-    cyBOT_Scan_t scan;
-    int i;
-    for (i=0;i<strlen(Header);i++){
-        uart_sendChar(Header[i]);
-    }
-    char Buffer_info[40];
-
-    int k;
-    int IR_sum = 0 ;
-    float Distance_sum = 0;
-    for (k =0 ;  k<16; k++){
-        cyBOT_Scan(90, &scan);
-        IR_sum += scan.IR_raw_val;
-        Distance_sum+= scan.sound_dist;
-    }
-    snprintf(Buffer_info,sizeof(Buffer_info),"%-18.2f\t%d\r\n",Distance_sum/16.0, IR_sum/16);
-    uart_blocking_sendStr(Buffer_info);
-}
-int read_avg_adc(int samples) {
-    int sum = 0;
-    int i ;
-    for (i = 0; i < samples; i++) {
-        sum += adc_read();
-        timer_waitMillis(10); // small delay between samples
-    }
-    return sum / samples;
-}
-void turn_and_move(oi_t *sensor_data, double angle , double distance){
-    if (distance < 0 || angle < 0){
-        lcd_printf("Invalid input");
-        return;
-    }
-
-    lcd_printf("Angle: %.1f Dist: %.1f", angle, distance);
-
-    char buf[100];
-
-    if (angle < 90.0){
-        double turn = 90.0 - angle;
-        turn_right(sensor_data, turn);
-        sprintf(buf, "Turn right %.1f deg\r\n", turn);
-    }
-    else if (angle > 90.0){
-        double turn = angle - 90.0;
-        turn_left(sensor_data, turn);
-        sprintf(buf, "Turn left %.1f deg\r\n", turn);
-    }
-    else {
-        sprintf(buf, "No turn, moving straight\r\n");
-    }
-
-    uart_blocking_sendStr(buf);
-
-    move_foward(sensor_data, distance);
-}
 static void back_up(oi_t *sensor,double distance);
 int Distance_to_IR(float x){
     float y = -0.0032 * x * x * x
@@ -123,99 +47,99 @@ float Get_arc_length(int degree, float radius){
     return 2*3.14*radius*(degree/360.0);
 }
 
-int scanObjects_upgrade(Object objects[], Object *min_Obj){
-
-    int Threshold = 600;
-
-    lcd_printf("threshold is %d",Threshold);
-
-    cyBOT_Scan_t scan;
-
-    float min_width =0;
-
-    int min_angle = 0;
-
-
-    int object_count = 0;
-
-    int in_object = 0;//Detect if we have hit an object or not
-
-    int object_start = 0;
-
-    int angle;
-
-    for(angle = Start_Deg; angle <= Stop_Deg; angle += dif_deg)
-    {
-        cyBOT_Scan(angle, &scan);
-
-        int Measured_IR ;
-        if (in_object){
-            int sum = 0;
-            int i;
-            for(i = 0; i < 5; i++){
-                cyBOT_Scan(angle, &scan);
-                sum += scan.IR_raw_val;
-            }
-          Measured_IR = sum / 5;
-        }else{
-            Measured_IR = scan.IR_raw_val;
-        }
-        // Object starts
-        if(Measured_IR > 0 && (Measured_IR > Threshold) && !in_object && scan.sound_dist!=0.0)
-        {
-            in_object = 1;
-            object_start = angle;
-        }
-        // Object ends
-        if((Measured_IR <= Threshold || angle == Stop_Deg) && in_object)
-        {
-            in_object = 0;
-
-            int object_end = angle;
-
-
-            if(object_count < MAX_OBJECTS && (object_end-object_start) >4)
-            {
-                Object *obj = &objects[object_count];
-
-                //obj->object_number = object_count + 1;
-
-                obj->start_angle = object_start;
-
-                obj->end_angle = object_end;
-
-
-                obj->middle_angle = (object_start + object_end) / 2;
-
-
-                // Re-scan at middle for better distance accuracy
-                cyBOT_Scan(obj->middle_angle, &scan);
-
-                timer_waitMillis(DELAY);
-
-                obj->IR_val = scan.IR_raw_val;
-
-                obj->distance = scan.sound_dist;
-
-                float arc_l = Get_arc_length(object_end - object_start, scan.sound_dist);
-
-                float width = width_Calculation(scan.sound_dist, arc_l);
-
-                obj->width = width;
-
-                if (min_width == 0 || width < min_width){
-                    min_width = width;
-                    min_Obj->distance = obj->distance;
-                    min_Obj->middle_angle = obj->middle_angle;
-                }
-
-                object_count++;
-            }
-        }
-    }
-
-    return object_count;
-}
+//int scanObjects_upgrade(Object objects[], Object *min_Obj){
+//
+//    int Threshold = 600;
+//
+//    lcd_printf("threshold is %d",Threshold);
+//
+//    cyBOT_Scan_t scan;
+//
+//    float min_width =0;
+//
+//    int min_angle = 0;
+//
+//
+//    int object_count = 0;
+//
+//    int in_object = 0;//Detect if we have hit an object or not
+//
+//    int object_start = 0;
+//
+//    int angle;
+//
+//    for(angle = Start_Deg; angle <= Stop_Deg; angle += dif_deg)
+//    {
+//        cyBOT_Scan(angle, &scan);
+//
+//        int Measured_IR ;
+//        if (in_object){
+//            int sum = 0;
+//            int i;
+//            for(i = 0; i < 5; i++){
+//                cyBOT_Scan(angle, &scan);
+//                sum += scan.IR_raw_val;
+//            }
+//          Measured_IR = sum / 5;
+//        }else{
+//            Measured_IR = scan.IR_raw_val;
+//        }
+//        // Object starts
+//        if(Measured_IR > 0 && (Measured_IR > Threshold) && !in_object && scan.sound_dist!=0.0)
+//        {
+//            in_object = 1;
+//            object_start = angle;
+//        }
+//        // Object ends
+//        if((Measured_IR <= Threshold || angle == Stop_Deg) && in_object)
+//        {
+//            in_object = 0;
+//
+//            int object_end = angle;
+//
+//
+//            if(object_count < MAX_OBJECTS && (object_end-object_start) >4)
+//            {
+//                Object *obj = &objects[object_count];
+//
+//                //obj->object_number = object_count + 1;
+//
+//                obj->start_angle = object_start;
+//
+//                obj->end_angle = object_end;
+//
+//
+//                obj->middle_angle = (object_start + object_end) / 2;
+//
+//
+//                // Re-scan at middle for better distance accuracy
+//                cyBOT_Scan(obj->middle_angle, &scan);
+//
+//                timer_waitMillis(DELAY);
+//
+//                obj->IR_val = scan.IR_raw_val;
+//
+//                obj->distance = scan.sound_dist;
+//
+//                float arc_l = Get_arc_length(object_end - object_start, scan.sound_dist);
+//
+//                float width = width_Calculation(scan.sound_dist, arc_l);
+//
+//                obj->width = width;
+//
+//                if (min_width == 0 || width < min_width){
+//                    min_width = width;
+//                    min_Obj->distance = obj->distance;
+//                    min_Obj->middle_angle = obj->middle_angle;
+//                }
+//
+//                object_count++;
+//            }
+//        }
+//    }
+//
+//    return object_count;
+//}
 
 
 int verge_detect(oi_t *d){
@@ -237,26 +161,17 @@ int verge_detect(oi_t *d){
 }
 void final_move(oi_t *sensor_data){
     int stop_move = 0;
-    char value[50];
-    char not_press[50];
 
     while(!stop_move){
         oi_update(sensor_data);
-        if (command_flag == 16){
-            sprintf(not_press,"\n\rdata is not pressed\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
-            uart_sendStr(not_press);
-        }
         if(command_flag){
 
            if(command_flag == 1){
                move_foward(sensor_data,(double) DISTANCE_MOVE);
-               sprintf(value,"\n\rwhen the button is pressed:\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
-               uart_sendStr(value);
            }
            else if (command_flag == 2){
                back_up(sensor_data,(double) DISTANCE_MOVE);
-               sprintf(value,"\n\rwhen the button is pressed:\n\rdata cliff front left is %d\n\r data for cliff left is : %d\n\r data for cliff front right is : %d\n\r", sensor_data->cliffFrontLeftSignal,sensor_data->cliffLeftSignal,sensor_data->cliffFrontRightSignal);
-               uart_sendStr(value);
+
            }
            else if (command_flag == 3){
                turn_left(sensor_data, (double) (DEGREE_TURN_VERTICAL));
@@ -272,9 +187,8 @@ void final_move(oi_t *sensor_data){
                stop_move = 1;
            }
            else if (command_flag == 6) {
-        scan180();
-
-      }
+                scan180();
+           }
            else if (command_flag == 7) {
                turn_right(sensor_data, (double) (180));
                scan180();
@@ -298,6 +212,7 @@ double move_foward (oi_t *sensor_data,double distance_mm){
         timer_waitMillis(1);
         if (verge){
             sprintf(warning,"Has get to the border, detects on ");
+            buzzer_sound();
             if (verge == 1){
                strcat(warning,"Cliff Front Left\n\r");
             }else if (verge == 2){oi_update(sensor_data);
@@ -377,41 +292,159 @@ double turn_left(oi_t *sensor,double degrees){
     oi_setWheels(0,0);
     return turn_already;
 }
+
 void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char *duration)
 {
     int i;
-    uart_sendChar(141);
-    uart_sendChar(song_index);
-    uart_sendChar(num_notes);
+    sendchar_song(141);
+    sendchar_song(song_index);
+    sendchar_song(num_notes);
     for (i = 0; i < num_notes; i++) {
-        uart_sendChar(notes[i]);
-        uart_sendChar(duration[i]);
+        sendchar_song(notes[i]);
+        sendchar_song(duration[i]);
     }
 }
 
 /// Plays a given song; use oi_load_song(...) first
 void playsong(int index) {
-    uart_sendChar(141);
-    uart_sendChar(index);
+    sendchar_song(141);
+    sendchar_song(index);
 }
 void scan180(){
     uart_sendStr("Angle(Degrees) \t CM :\r\n");
+    char irmessage[60];
+    int angle = 0;
+    for (angle=0; angle <= 180; angle += 2) {
+       servo_move_new(angle);
+
+       timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
+       uint32_t pulse_width = ping_getPulseWidth();
 
 
-               for (angle = 0; angle <= 180; angle += 2) {
-                   servo_move_new(angle);
-
-                   timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
-                   uint32_t pulse_width = ping_getPulseWidth();
 
 
+      //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
+       //  to generate putty file for graphical display
+       sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
+       uart_sendStr(irmessage);
+    }
 
+   uart_sendStr("END\n");
+}
+//Initialize UART4 for song playing
+//void song_init(){
+//    //enable clock to GPIO port C
+//     SYSCTL_RCGCGPIO_R |= 0x04;
+//
+//     //enable clock to UART4
+//     SYSCTL_RCGCUART_R |= 0x10;
+//
+//     //wait for GPIOC and UART4 peripherals to be ready
+//     while ((SYSCTL_PRGPIO_R & 0x04) == 0) {};
+//     while ((SYSCTL_PRUART_R & 0x10) == 0) {};
+//
+//     //enable alternate functions on port C pins
+//     GPIO_PORTC_AFSEL_R |= 0x30;
+//
+//     //enable digital functionality on port B pins
+//     GPIO_PORTC_DEN_R |= 0x30;
+//
+//     GPIO_PORTC_DIR_R |= 0x20;
+//     GPIO_PORTC_DIR_R &= ~0x10;
+//
+//     //enable UART4 port C pins
+//     GPIO_PORTC_PCTL_R = GPIO_PORTC_PCTL_R & (~0x00FF0000); //Reset the entire resistor to make sure the set value is correct
+//     GPIO_PORTC_PCTL_R |= 0x110000;//pin 4 and 5
+//
+//     //calculate baud rate
+//     uint16_t iBRD = (16000000.0) / (16.0 * 115200.0);
+//
+//     float dum_cal = (16000000.0) / (16.0 * 115200.0) - iBRD;
+//
+//     uint16_t fBRD = dum_cal * 64.0 + 0.5;
+//
+//     //turn off UART1 while setting it up
+//     UART4_CTL_R &= ~0x01;
+//
+//     //set baud rate
+//     //note: to take effect, there must be a write to LCRH after these assignments
+//     UART4_IBRD_R = iBRD;
+//     UART4_FBRD_R = fBRD;
+//
+//     //set frame, 8 data bits, 1 stop bit, no parity, no FIFO
+//     //note: this write to LCRH must be after the BRD assignments
+//     UART4_LCRH_R = 0x0000060;
+//
+//     //use system clock as source
+//     //note from the datasheet UARTCCC register description:
+//     //field is 0 (system clock) by default on reset
+//     //Good to be explicit in your code
+//     UART4_CC_R = 0x0;
+//
+//     //re-enable UART1 and also enable RX, TX (three bits)
+//     //note from the datasheet UARTCTL register description:
+//     //RX and TX are enabled by default on reset
+//     //Good to be explicit in your code
+//     //Be careful to not clear RX and TX enable bits
+//     //(either preserve if already set or set them)
+//     UART4_CTL_R |= 0x301;
+//}
+void make_sound(){
 
-                  //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
-                   //  to generate putty file for graphical display
-                    sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
-                   uart_sendStr(irmessage);
-               }
+        unsigned char notes[] = {
+            60, 60, 62, 60, 65, 64,
+            60, 60, 62, 60, 67, 65,
+            60, 60, 72, 69
+        };
 
-               uart_sendStr("END\n");
+        unsigned char durations[] = {
+            12, 12, 24, 24, 24, 48,
+            12, 12, 24, 24, 24, 48,
+            12, 12, 24, 24
+        };
+
+        loadsong(0, 16, notes, durations);
+        playsong(0);
+
+}
+void buzzer_sound(){
+    // Phase 1: rapid pulse (low-mid)
+        unsigned char notes1[] = {
+            85, 70, 85, 70, 85, 70, 85, 70,
+            88, 72, 88, 72, 88, 72, 88, 72
+        };
+        unsigned char dur1[] = {
+            4,4,4,4,4,4,4,4,
+            4,4,4,4,4,4,4,4
+        };
+
+        // Phase 2: higher + faster (more panic)
+        unsigned char notes2[] = {
+            95, 75, 95, 75, 95, 75, 95, 75,
+            100, 80, 100, 80, 100, 80, 100, 80
+        };
+        unsigned char dur2[] = {
+            3,3,3,3,3,3,3,3,
+            3,3,3,3,3,3,3,3
+        };
+
+        // Phase 3: final impact hits
+        unsigned char notes3[] = {
+            110, 90, 110, 90, 110, 90, 110, 60
+        };
+        unsigned char dur3[] = {
+            6,6,6,6,6,6,6,20
+        };
+
+        oi_loadSong(1, 16, notes1, dur1);
+        oi_loadSong(2, 16, notes2, dur2);
+        oi_loadSong(3, 8,  notes3, dur3);
+
+        oi_play_song(1);
+        timer_waitMillis(500);
+
+        oi_play_song(2);
+        timer_waitMillis(400);
+
+        oi_play_song(3);
 }
