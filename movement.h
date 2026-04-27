@@ -31,4 +31,5 @@ void playsong(int index);
 void scan180();
 void make_sound();
 void buzzer_sound();
+static void bot_brake();
 #endif /* MOVEMENT_H_ */

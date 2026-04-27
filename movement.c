@@ -5,8 +5,8 @@
 #include <ping_template.h>
 #include <servo.h>
 
-#define SPEED_RIGHT 200
-#define SPEED_LEFT 200
+#define SPEED_RIGHT 100
+#define SPEED_LEFT 100
 #define BACK_UP_DISTANCE 150
 #define DISTANCE_MOVE 200
 #define DEGREE_TURN_VERTICAL 90
@@ -22,8 +22,10 @@
 #define FRONT_LEFT 2450
 #define RIGHT_VERGE 2400
 #define LEFT_VERGE 2400
+#define HOLE 200
 void turn_and_move(oi_t *sensor_data,double angle , double distance);
 void final_move(oi_t *sensor_data);
+static void bot_brake();
 /**
  * We need those two extern variable to interact with interrupt
  */
@@ -143,19 +145,22 @@ float Get_arc_length(int degree, float radius){
 
 
 int verge_detect(oi_t *d){
-    char value[50];
     if (d->cliffFrontLeftSignal >= FRONT_LEFT){
-        sprintf(value,"data cliff front left is %d\n\r", d->cliffFrontLeftSignal);
-        uart_sendStr(value);
         return 1;
     }else if (d->cliffLeftSignal >= LEFT_VERGE){
-        sprintf(value,"data is %d\n\r", d->cliffLeftSignal);
-        uart_sendStr(value);
         return 2;
     }else if (d->cliffFrontRightSignal >= FRONT_RIGHT){
         return 3;
     }else if (d->cliffRightSignal >= RIGHT_VERGE){
         return 4;
+    }else if (d->cliffFrontLeftSignal <= HOLE) {
+        return 5;
+    }else if (d->cliffLeftSignal <= HOLE){
+        return 6;
+    }else if (d->cliffFrontRightSignal <= HOLE){
+        return 7;
+    }else if (d->cliffRightSignal <= HOLE){
+        return 8;
     }
     return 0;
 }
@@ -165,7 +170,7 @@ void final_move(oi_t *sensor_data){
     while(!stop_move){
         oi_update(sensor_data);
         if(command_flag){
-
+           lcd_printf("command_sent");
            if(command_flag == 1){
                move_foward(sensor_data,(double) DISTANCE_MOVE);
            }
@@ -198,6 +203,11 @@ void final_move(oi_t *sensor_data){
         }
     }
 }
+void static bot_brake(){
+    oi_setWheels(-50, -50);
+    timer_waitMillis(50);
+    oi_setWheels(0,0);
+}
 /**
  * Make the robot to move foward if it gets bumped at sth ,stop and send a message to Putty
  */
@@ -208,31 +218,47 @@ double move_foward (oi_t *sensor_data,double distance_mm){
     sprintf(warning,"\n\rObject detects on the ");
     while (sum <= distance_mm && !bump_thing){
         oi_update(sensor_data);
+
         int verge = verge_detect(sensor_data);
-        timer_waitMillis(1);
+
         if (verge){
+            bot_brake();
             sprintf(warning,"Has get to the border, detects on ");
             buzzer_sound();
             if (verge == 1){
                strcat(warning,"Cliff Front Left\n\r");
-            }else if (verge == 2){oi_update(sensor_data);
+            }else if (verge == 2){
                 strcat(warning,"Cliff Left\n\r");
             }else if (verge == 3){
                 strcat(warning,"Cliff Front Right\n\r");
-            }else{
+            }else if(verge ==4){
                 strcat(warning,"Cliff Right\n\r");
+            }else if(verge >= 5){
+                sprintf(warning,"Has get near a hole detected on ");
+                if (verge ==5 ){
+                    strcat(warning,"Cliff Front Left\n\r");
+                }else if (verge ==6){
+                    strcat(warning,"Cliff Left\n\r");
+                }else if (verge ==7){
+                    strcat(warning,"Cliff Front Right\n\r");
+                }else {
+                    strcat(warning,"Cliff Right\n\r");
+                }
             }
             bump_thing = 1 ;
         }
         if (sensor_data->bumpLeft && sensor_data->bumpRight){
+            bot_brake();
             strcat(warning,"middle");
             bump_thing = 1;
         }
         else if (sensor_data->bumpRight){
+            bot_brake();
             strcat(warning,"right");
             bump_thing = 1;
         }
         else if (sensor_data->bumpLeft){
+            bot_brake();
             strcat(warning,"left");
             bump_thing = 1;
         }
