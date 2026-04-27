@@ -16,7 +16,7 @@ volatile ping_state_t g_state = LOW;
 volatile int overflowCount = 0;
 
 // Global lifetime overflow counter (defined elsewhere)
-extern volatile int totalOverflowCount;
+volatile int totalOverflowCount;
 
 
 // Initialization

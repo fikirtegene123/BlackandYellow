@@ -100,7 +100,6 @@ void servo_move_new(uint32_t degrees)
 
     TIMER1_TBMATCHR_R = match_val & 0xFFFF;         // lower 16 bits
     TIMER1_TBPMR_R    = (match_val >> 16) & 0xFF;   // upper 8 bits
-    lcd_printf("match_val:%d \n angle val:%d",match_val,degrees);
     timer_waitMillis(200);
 }
 float extract_slope(void){

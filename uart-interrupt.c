@@ -111,6 +111,12 @@ void uart_sendChar(char data){
 
     UART1_DR_R = data;
 }
+void sendchar_song(char data){
+
+    while (UART4_FR_R & 0x20);
+
+    UART4_DR_R = data;
+}
 
 char uart_receive(void){
 	//DO NOT USE this busy-wait function if using RX interrupt
@@ -170,6 +176,8 @@ void UART1_Handler(void)
                 command_flag = 4;
             }else if (byte_received == stop_byte){
                 command_flag = 5;
+            }else if (byte_received == 't'){
+                command_flag = 16;
             }
              else if (byte_received == scan_byte) {
                 command_flag = 6;

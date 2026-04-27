@@ -9,17 +9,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <inc/tm4c123gh6pm.h>
-#include "driverlib/interrupt.h"
 
-
-
-typedef enum {LOW, HIGH, DONE} ping_state_t;
+typedef enum{
+    LOW,
+    HIGH,
+    DONE
+}ping_state_t;
 
 
 extern volatile uint32_t g_start_time;
 extern volatile uint32_t g_end_time;
 extern volatile ping_state_t g_state;
-
+volatile int totalOverflowCount;
 /**
  * Initialize ping sensor. Uses PB3 and Timer 3B
  */
