@@ -1,20 +1,10 @@
-/**
- * lab6-interrupt_template.c
- *
- * Template file for CprE 288 Lab 6
- *
- * @author Diane Rover, 2/15/2020
- *
- */
-
 #include "Timer.h"
-#include "ping_template.h"
+#include "ping_template.h"  
 #include "lcd.h"
 #include <adc.h>
 #include <math.h>
 #include "stdint.h"
 #include <servo.h>
-// Uncomment or add any include directives that you want to use
 #include "open_interface.h"
 #include "button.h"
 
@@ -35,10 +25,8 @@ int main(void){
     servo_init_new();
     //Init Pin sensors
     ping_init();
-    //make_sound();
-    buzzer_sound();
     //Call move function
-    //final_move(sensor_data);
+    final_move(sensor_data);
     //Free the object
     oi_free(sensor_data);
 }
