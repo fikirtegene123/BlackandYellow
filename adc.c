@@ -6,6 +6,7 @@
  */
 #include <inc/tm4c123gh6pm.h>
 #include <stdint.h>
+#include <math.h>
 void adc_init(){
     SYSCTL_RCGCADC_R |= 0x01; //Enable two modules (I think I only need one but I enable both for sure)
 
@@ -56,4 +57,22 @@ int adc_read(void){
     return result;
 }
 
+float average_ir(void) {
+    int i;
+        float ir_value_average = 0;
 
+
+        for(i = 0; i < 16; i++) {
+            ADC0_PSSI_R = 0x0008;
+            while((ADC0_RIS_R & 0x08) == 0){};
+            ir_value_average += ADC0_SSFIFO3_R & 0xFFF;
+            ADC0_ISC_R = 0x0008;
+        }
+
+        float ir_avg = ir_value_average / 16.0;
+        return ir_avg;
+}
+
+double ir_to_cm(float y) {
+    return -log(y / 2761.4) / 0.022;
+}
