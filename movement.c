@@ -4,6 +4,7 @@
 #include <math.h>
 #include <ping_template.h>
 #include <servo.h>
+#include <adc.h>
 
 #define SPEED_RIGHT 100
 #define SPEED_LEFT 100
@@ -338,24 +339,26 @@ void playsong(int index) {
 }
 void scan180(){
     uart_sendStr("Angle(Degrees) \t CM :\r\n");
-    char irmessage[60];
-    int angle = 0;
-    for (angle=0; angle <= 180; angle += 2) {
-       servo_move_new(angle);
-
-       timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
-       uint32_t pulse_width = ping_getPulseWidth();
 
 
+               for (angle = 0; angle <= 180; angle += 2) {
+                   servo_move_new(angle);
+
+                   timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
+                   //uint32_t pulse_width = ping_getPulseWidth();
+                   float ir_average = average_ir();
 
 
-      //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
-       //  to generate putty file for graphical display
-       sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
-       uart_sendStr(irmessage);
-    }
 
-   uart_sendStr("END\n");
+
+
+                  //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
+                   //  to generate putty file for graphical display
+                    sprintf(irmessage, "%d \t %.2f\r\n", angle,  ir_to_cm(ir_average));
+                   uart_sendStr(irmessage);
+               }
+
+               uart_sendStr("END\n");
 }
 //Initialize UART4 for song playing
 //void song_init(){
