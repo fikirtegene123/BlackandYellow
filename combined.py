@@ -72,23 +72,20 @@ class CyBotGUI:
         """Creates a pop-up window for manual distance calculations."""
         calc_win = tk.Toplevel(self.window)
         calc_win.title("Manual Point Calculator")
-        calc_win.geometry("350x550") # Made slightly larger to ensure visibility
+        calc_win.geometry("350x550") 
         
-        # Object 1 Inputs
         tk.Label(calc_win, text="Object 1", font=('Arial', 11, 'bold')).pack(pady=5)
         tk.Label(calc_win, text="Angle (deg):").pack()
         ent_a1 = tk.Entry(calc_win); ent_a1.pack()
         tk.Label(calc_win, text="Distance (cm):").pack()
         ent_d1 = tk.Entry(calc_win); ent_d1.pack()
         
-        # Object 2 Inputs
         tk.Label(calc_win, text="Object 2", font=('Arial', 11, 'bold')).pack(pady=5)
         tk.Label(calc_win, text="Angle (deg):").pack()
         ent_a2 = tk.Entry(calc_win); ent_a2.pack()
         tk.Label(calc_win, text="Distance (cm):").pack()
         ent_d2 = tk.Entry(calc_win); ent_d2.pack()
         
-        # Result Display
         lbl_res = tk.Label(calc_win, text="Result: -- cm", font=('Arial', 12,), fg="blue", pady=15)
         lbl_res.pack()
 
@@ -99,30 +96,23 @@ class CyBotGUI:
                 d2 = float(ent_d2.get())
                 a2 = np.deg2rad(float(ent_a2.get()))
                 
-                # Law of Cosines
                 d_sq = d1**2 + d2**2 - (2 * d1 * d2 * np.cos(a1 - a2))
                 res = np.sqrt(d_sq)
                 
-                lbl_res.config(text=f"Result: {res:.2f} cm")
-                
-                # Highlight if near the 56cm pillar target
                 if 51.0 <= res <= 61.0:
                     lbl_res.config(foreground="green", text=f"MATCH: {res:.2f} cm")
                 else:
-                    lbl_res.config(foreground="blue")
+                    lbl_res.config(foreground="blue", text=f"Result: {res:.2f} cm")
             except ValueError:
                 messagebox.showerror("Input Error", "Please enter valid numbers.")
 
-        # THE MISSING BUTTON
-        # Added pady=20 to make it stand out at the bottom
         btn_trigger = tk.Button(calc_win, text="Calculate Distance", 
                                 command=do_calc, bg="#4CAF50", fg="white", 
                                 font=('Arial', 10, 'bold'), padx=10, pady=5)
         btn_trigger.pack(pady=20)
 
     def setup_polar_axis(self, ax, title):
-        """Standard horizontal polar view (0 on right, 180 on left)."""
-        ax.set_thetalim(0, np.pi)  # Show only the 0-180 semi-circle
+        ax.set_thetalim(0, np.pi)
         ax.set_rmax(MAX_PLOT_DIST)
         ax.set_title(title, pad=15, weight='bold')
 
@@ -159,7 +149,6 @@ class CyBotGUI:
             target_ax.clear()
             self.setup_polar_axis(target_ax, "FRONT" if is_front else "BACK")
             
-            # Convert degrees to radians for plotting
             angles_rad = np.deg2rad(raw_angles)
             target_ax.plot(angles_rad, raw_distances, color='r', linewidth=1.5, marker='o', markersize=2)
             
@@ -188,13 +177,22 @@ class CyBotGUI:
                 cybot.write(current_cmd.encode())
                 if current_cmd in ["n\n", "b\n"]:
                     is_front = (current_cmd == "n\n")
-                    self.log(f"Receiving Data...")
+                    self.log(f"Receiving Data Stream...")
                     
                     with open(self.full_path, 'w') as f:
                         f.write("Angle \t Distance\n") 
                         while True:
                             rx_line = cybot.readline().decode().strip()
-                            if "END" in rx_line or not rx_line: break
+                            
+                            # Print EVERY line received to the GUI console
+                            if rx_line:
+                                self.window.after(0, lambda msg=rx_line: self.log(f"UART: {msg}"))
+
+                            # Check for end of transmission
+                            if "END" in rx_line or not rx_line: 
+                                break
+                            
+                            # If it starts with a number, save to file for plotting
                             if rx_line and rx_line[0].isdigit():
                                 f.write(rx_line + "\n")
                     
@@ -202,11 +200,14 @@ class CyBotGUI:
                 elif current_cmd == "quit\n":
                     break
                 else:
+                    # Logic for standard movement or status commands
                     rx_message = cybot.readline().decode().strip()
-                    if rx_message: self.log(f"CyBot: {rx_message}")
+                    if rx_message: 
+                        self.log(f"CyBot: {rx_message}")
             except Exception as e:
                 self.log(f"Socket Error: {e}")
                 break
+        
         cybot_socket.close()
 
 if __name__ == "__main__":
