@@ -4,12 +4,14 @@
 #include <math.h>
 #include <ping_template.h>
 #include <servo.h>
-
+#include <adc.h>
+#include <Timer.h >
 #define SPEED_RIGHT 100
 #define SPEED_LEFT 100
 #define BACK_UP_DISTANCE 150
 #define DISTANCE_MOVE 200
-#define DEGREE_TURN_VERTICAL 90
+#define DEGREE_TURN_VERTICAL 5
+#define DEGREE_TURN_BIG 15
 #define Buffer_Length 1000
 #define OBJECT_THRESHOLD 30
 #define Start_Deg 0
@@ -18,10 +20,10 @@
 #define MAX_OBJECTS 10
 #define DELAY 100
 #define Buffer_Lenght 50
-#define FRONT_RIGHT 2400
-#define FRONT_LEFT 2450
-#define RIGHT_VERGE 2400
-#define LEFT_VERGE 2400
+#define FRONT_RIGHT 2700
+#define FRONT_LEFT 2700
+#define RIGHT_VERGE 2700
+#define LEFT_VERGE 2490
 #define HOLE 200
 void turn_and_move(oi_t *sensor_data,double angle , double distance);
 void final_move(oi_t *sensor_data);
@@ -49,99 +51,33 @@ float Get_arc_length(int degree, float radius){
     return 2*3.14*radius*(degree/360.0);
 }
 
-//int scanObjects_upgrade(Object objects[], Object *min_Obj){
-//
-//    int Threshold = 600;
-//
-//    lcd_printf("threshold is %d",Threshold);
-//
-//    cyBOT_Scan_t scan;
-//
-//    float min_width =0;
-//
-//    int min_angle = 0;
-//
-//
-//    int object_count = 0;
-//
-//    int in_object = 0;//Detect if we have hit an object or not
-//
-//    int object_start = 0;
-//
-//    int angle;
-//
-//    for(angle = Start_Deg; angle <= Stop_Deg; angle += dif_deg)
-//    {
-//        cyBOT_Scan(angle, &scan);
-//
-//        int Measured_IR ;
-//        if (in_object){
-//            int sum = 0;
-//            int i;
-//            for(i = 0; i < 5; i++){
-//                cyBOT_Scan(angle, &scan);
-//                sum += scan.IR_raw_val;
-//            }
-//          Measured_IR = sum / 5;
-//        }else{
-//            Measured_IR = scan.IR_raw_val;
-//        }
-//        // Object starts
-//        if(Measured_IR > 0 && (Measured_IR > Threshold) && !in_object && scan.sound_dist!=0.0)
-//        {
-//            in_object = 1;
-//            object_start = angle;
-//        }
-//        // Object ends
-//        if((Measured_IR <= Threshold || angle == Stop_Deg) && in_object)
-//        {
-//            in_object = 0;
-//
-//            int object_end = angle;
-//
-//
-//            if(object_count < MAX_OBJECTS && (object_end-object_start) >4)
-//            {
-//                Object *obj = &objects[object_count];
-//
-//                //obj->object_number = object_count + 1;
-//
-//                obj->start_angle = object_start;
-//
-//                obj->end_angle = object_end;
-//
-//
-//                obj->middle_angle = (object_start + object_end) / 2;
-//
-//
-//                // Re-scan at middle for better distance accuracy
-//                cyBOT_Scan(obj->middle_angle, &scan);
-//
-//                timer_waitMillis(DELAY);
-//
-//                obj->IR_val = scan.IR_raw_val;
-//
-//                obj->distance = scan.sound_dist;
-//
-//                float arc_l = Get_arc_length(object_end - object_start, scan.sound_dist);
-//
-//                float width = width_Calculation(scan.sound_dist, arc_l);
-//
-//                obj->width = width;
-//
-//                if (min_width == 0 || width < min_width){
-//                    min_width = width;
-//                    min_Obj->distance = obj->distance;
-//                    min_Obj->middle_angle = obj->middle_angle;
-//                }
-//
-//                object_count++;
-//            }
-//        }
-//    }
-//
-//    return object_count;
-//}
+void calibrate_ir_sensor() {
+    int i;
+    char msg[100];
+
+    uart_sendStr("IR Calibration Mode\r\n");
+    uart_sendStr("Place object at known distance, then send any key.\r\n");
+
+    while (1) {
+
+        // wait a little between samples
+        timer_waitMillis(500);
+
+        float sum = 0;
+
+        for (i = 0; i < 20; i++) {
+            sum += average_ir();   // or adc_read() if that is your raw IR function
+            timer_waitMillis(20);
+        }
+
+        float avg_ir = sum / 20.0;
+
+        sprintf(msg, "RAW_IR: %.2f\r\nDISTANCE: %.2f\n\r", avg_ir, ir_to_cm(avg_ir));
+        if (command_flag ==1){
+            uart_sendStr(msg);
+        }
+    }
+}
 
 
 int verge_detect(oi_t *d){
@@ -170,7 +106,6 @@ void final_move(oi_t *sensor_data){
     while(!stop_move){
         oi_update(sensor_data);
         if(command_flag){
-           lcd_printf("command_sent");
            if(command_flag == 1){
                move_foward(sensor_data,(double) DISTANCE_MOVE);
            }
@@ -180,13 +115,10 @@ void final_move(oi_t *sensor_data){
            }
            else if (command_flag == 3){
                turn_left(sensor_data, (double) (DEGREE_TURN_VERTICAL));
-               move_foward(sensor_data,(double) DISTANCE_MOVE);
-               turn_right(sensor_data, (double) (DEGREE_TURN_VERTICAL));
+
            }
            else if (command_flag == 4){
                turn_right(sensor_data, (double) (DEGREE_TURN_VERTICAL));
-               move_foward(sensor_data,(double) DISTANCE_MOVE);
-               turn_left(sensor_data, (double) (DEGREE_TURN_VERTICAL));
            }
            else if (command_flag == 5){
                stop_move = 1;
@@ -197,10 +129,12 @@ void final_move(oi_t *sensor_data){
            else if (command_flag == 7) {
                turn_right(sensor_data, (double) (180));
                scan180();
-               turn_right(sensor_data, (double) (180)); }
-
-           command_flag = 0;
-        }
+               turn_right(sensor_data, (double) (180));
+           }else if (command_flag == 100){
+               make_sound();
+           }
+           command_flag = 0 ;
+    }
     }
 }
 void static bot_brake(){
@@ -215,55 +149,64 @@ double move_foward (oi_t *sensor_data,double distance_mm){
     double sum = 0;
     int bump_thing = 0 ;
     char warning[Buffer_Lenght];
-    sprintf(warning,"\n\rObject detects on the ");
+    sprintf(warning,"Object detects on the ");
+
     while (sum <= distance_mm && !bump_thing){
+
         oi_update(sensor_data);
 
         int verge = verge_detect(sensor_data);
+        if (sensor_data->bumpLeft && sensor_data->bumpRight){
+                    bot_brake();
+                    sprintf(warning,"bump middle\n");
+                    bump_thing = 1;
 
+                }
+                else if (sensor_data->bumpRight){
+                    bot_brake();
+                    sprintf(warning,"bump right\n");
+                    bump_thing = 1;
+
+                }
+                else if (sensor_data->bumpLeft){
+                    bot_brake();
+                    sprintf(warning,"bump left\n");
+                    bump_thing = 1;
+
+        }
+        if (bump_thing){
+            uart_sendStr(warning);
+            buzzer_sound();
+            continue;
+        }
         if (verge){
             bot_brake();
             sprintf(warning,"Has get to the border, detects on ");
-            buzzer_sound();
             if (verge == 1){
-               strcat(warning,"Cliff Front Left\n\r");
+               strcat(warning,"Cliff Front Left\n");
             }else if (verge == 2){
-                strcat(warning,"Cliff Left\n\r");
+                strcat(warning,"Cliff Left\n");
             }else if (verge == 3){
-                strcat(warning,"Cliff Front Right\n\r");
+                strcat(warning,"Cliff Front Right\n");
             }else if(verge ==4){
-                strcat(warning,"Cliff Right\n\r");
+                strcat(warning,"Cliff Right\n");
             }else if(verge >= 5){
                 sprintf(warning,"Has get near a hole detected on ");
                 if (verge ==5 ){
-                    strcat(warning,"Cliff Front Left\n\r");
+                    strcat(warning,"Cliff Front Left\n");
                 }else if (verge ==6){
-                    strcat(warning,"Cliff Left\n\r");
+                    strcat(warning,"Cliff Left\n");
                 }else if (verge ==7){
-                    strcat(warning,"Cliff Front Right\n\r");
+                    strcat(warning,"Cliff Front Right\n");
                 }else {
-                    strcat(warning,"Cliff Right\n\r");
+                    strcat(warning,"Cliff Right\n");
                 }
             }
             bump_thing = 1 ;
         }
-        if (sensor_data->bumpLeft && sensor_data->bumpRight){
-            bot_brake();
-            strcat(warning,"middle");
-            bump_thing = 1;
-        }
-        else if (sensor_data->bumpRight){
-            bot_brake();
-            strcat(warning,"right");
-            bump_thing = 1;
-        }
-        else if (sensor_data->bumpLeft){
-            bot_brake();
-            strcat(warning,"left");
-            bump_thing = 1;
-        }
         if (bump_thing){
             uart_sendStr(warning);
+            buzzer_sound();
             continue;
         }
         oi_setWheels(SPEED_RIGHT,SPEED_LEFT);
@@ -291,7 +234,7 @@ static void back_up(oi_t *sensor_data,double distance){
  * Make the robot turn right
  */
 double turn_right(oi_t *sensor,double degrees){
-    degrees = degrees*0.90;//Cablirate the bots , it will not turn exactly 90 degrees , so some offset
+    degrees = degrees*0.94;//Cablirate the bots , it will not turn exactly 90 degrees , so some offset
     double turn_already = 0;
     oi_setWheels(-SPEED_RIGHT,SPEED_LEFT);
     /**
@@ -305,7 +248,7 @@ double turn_right(oi_t *sensor,double degrees){
     return turn_already;
 }
 double turn_left(oi_t *sensor,double degrees){
-    degrees = degrees*0.90;
+    degrees = degrees*0.97;
     double turn_already = 0;
     oi_setWheels(SPEED_RIGHT, -SPEED_LEFT);
     /**
@@ -322,7 +265,7 @@ double turn_left(oi_t *sensor,double degrees){
 void loadsong(int song_index, int num_notes, unsigned char *notes, unsigned char *duration)
 {
     int i;
-    sendchar_song(141);
+    sendchar_song(140);
     sendchar_song(song_index);
     sendchar_song(num_notes);
     for (i = 0; i < num_notes; i++) {
@@ -338,24 +281,27 @@ void playsong(int index) {
 }
 void scan180(){
     uart_sendStr("Angle(Degrees) \t CM :\r\n");
-    char irmessage[60];
-    int angle = 0;
-    for (angle=0; angle <= 180; angle += 2) {
-       servo_move_new(angle);
 
-       timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
-       uint32_t pulse_width = ping_getPulseWidth();
+    int angle =0;
+    char irmessage[50];
+    while (angle<=180){
+        servo_move_new(angle);
 
+        timer_waitMillis(20); // CRITICAL: Give the servo 20ms to move/settle
+        //uint32_t pulse_width = ping_getPulseWidth();
+        float ir_average = average_ir();
 
+        float ir_av;
 
+        ir_av = ir_to_cm(ir_average);
 
-      //  sprintf(irmessage, "%d \t %d\r\n", angle, irVal);
-       //  to generate putty file for graphical display
-       sprintf(irmessage, "%d \t %.2f\r\n", angle,  ((float)pulse_width * 34300.0f) / (2.0f * 16000000.0f));
-       uart_sendStr(irmessage);
+        sprintf(irmessage, "%d \t %.2f\r\n", angle, ir_av);
+        //  to generate putty file for graphical display
+        uart_sendStr(irmessage);
+        angle = angle + 2;
     }
 
-   uart_sendStr("END\n");
+    uart_sendStr("END\n");
 }
 //Initialize UART4 for song playing
 //void song_init(){
@@ -429,8 +375,8 @@ void make_sound(){
             12, 12, 24, 24
         };
 
-        loadsong(0, 16, notes, durations);
-        playsong(0);
+        oi_loadSong(0, 16, notes, durations);
+        oi_play_song(0);
 
 }
 void buzzer_sound(){
@@ -473,4 +419,19 @@ void buzzer_sound(){
         timer_waitMillis(400);
 
         oi_play_song(3);
+}
+void check_cliff_sensors(oi_t *sensor) {
+    oi_update(sensor);
+
+    char msg[100];
+
+    sprintf(msg,
+        "FL: %d | L: %d | FR: %d | R: %d\r\n",
+        sensor->cliffFrontLeftSignal,
+        sensor->cliffLeftSignal,
+        sensor->cliffFrontRightSignal,
+        sensor->cliffRightSignal);
+    if (command_flag ==1){
+        uart_sendStr(msg);
+    }
 }

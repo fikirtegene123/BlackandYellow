@@ -32,4 +32,6 @@ void scan180();
 void make_sound();
 void buzzer_sound();
 static void bot_brake();
+void check_cliff_sensors(oi_t *sensor);
+void calibrate_ir_sensor();
 #endif /* MOVEMENT_H_ */

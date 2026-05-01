@@ -17,8 +17,8 @@ void init_timer_pwm(void);
 float extract_slope(void);
 float extract_b(float slope);
 void calibrate_servo(uint32_t calibrate_val);
-static uint32_t servo_right_matching = 311500 ;   // 0
-static uint32_t servo_left_matching  = 284500 ;  // 180
+static uint32_t servo_right_matching = 312000 ;   // bot 8
+static uint32_t servo_left_matching  = 284000 ;  // 180
 
 void init_timer_pwm(void){
     SYSCTL_RCGCGPIO_R |= 0x02;   //Enable clock for port B

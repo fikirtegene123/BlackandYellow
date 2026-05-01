@@ -17,7 +17,6 @@
 // Uncomment or add any include directives that you want to use
 #include "open_interface.h"
 #include "button.h"
-
 //#include "uart.h"
 extern volatile int command_flag ;
 extern volatile char prev_char;
@@ -32,13 +31,26 @@ int main(void){
     timer_init();
     //Init servo
     servo_init_new();
-    //Init Pin sensors
-    ping_init();
+    //Adc init
+    adc_init();
     //Call move function
     final_move(sensor_data);
     //Free the object
     oi_free(sensor_data);
 }
+
+//int main (void){
+//    adc_init();
+//    uart_interrupt_init();
+//    timer_init();
+//    oi_t *sensor_data = oi_alloc();
+//    timer_init();
+//    oi_init(sensor_data);
+//    while (1){
+//        check_cliff_sensors(sensor_data);
+//    }
+//    oi_free(sensor_data);
+//}
 //int main(void){
 //    lcd_init();
 //    servo_init_new();
@@ -63,4 +75,10 @@ int main(void){
 //        lcd_printf("match: %d", match);
 //    }
 //}
-
+//int main (void){
+//
+//    timer_init();
+//    uart_interrupt_init();
+//    adc_init();
+//    calibrate_ir_sensor();
+//}

@@ -8,7 +8,9 @@
 #ifndef ADC_H_
 #define ADC_H_
 
-void adc_init();
+void adc_init(void);
 int adc_read(void);
+float average_ir(void);
+float ir_to_cm(float y);
 
 #endif /* ADC_H_ */
